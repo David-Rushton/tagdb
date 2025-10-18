@@ -2,10 +2,10 @@ package repository
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 
+	"dev.azure.com/trayport/Hackathon/_git/Q/internal/logger"
 	"github.com/google/uuid"
 )
 
@@ -18,52 +18,87 @@ var (
 func init() {
 	fileInfo, err := os.Stat(rootDir)
 	if err != nil {
-		log.Panicf("cannot find repository root: %s", rootDir)
+		logger.Panicf("cannot find repository root: %s", rootDir)
 	}
 
 	if !fileInfo.IsDir() {
-		log.Panic("cannot find repository root must be a directory")
+		logger.Panic("cannot find repository root must be a directory")
 	}
 
 	if err := createDirIfNotExists(issuesDir); err != nil {
-		log.Panicf("cannot create issues directory: %s", issuesDir)
+		logger.Panicf("cannot create issues directory: %s", issuesDir)
 	}
 
 	if err := createDirIfNotExists(tagsDir); err != nil {
-		log.Panicf("cannot create issues directory: %s", issuesDir)
+		logger.Panicf("cannot create issues directory: %s", issuesDir)
 	}
 
-	log.Printf("repository root directory set to: %s", rootDir)
-	log.Printf("repository issues directory set to: %s", issuesDir)
-	log.Printf("repository tags directory set to: %s", tagsDir)
+	logger.Infof("repository root directory set to: %s", rootDir)
+	logger.Infof("repository issues directory set to: %s", issuesDir)
+	logger.Infof("repository tags directory set to: %s", tagsDir)
 }
 
-func AddIssue(title, markdownBody string) (Issue, error) {
+func AddIssue(title, markdownBody string, tags []string) (Issue, error) {
+	err := isValidTags(tags)
+	if !err {
+		var err = fmt.Errorf("cannot add issue, tags %v are invalid, they should contains lowercase letters, numbers and hyphens only - starting with a letter", tags)
+		return Issue{}, err
+	}
+
 	issue := Issue{
 		Id:           uuid.NewString(),
 		Title:        title,
 		MarkdownBody: markdownBody,
+		Tags:         tags,
 	}
 
-	return issue, writeIssue(Issue{})
+	return issue, writeIssue(issue.Id, issue.Title, issue.MarkdownBody, issue.Tags)
 }
 
-func UpdateIssue(issue Issue) (Issue, error) {
-	if !issueExists(issue.Id) {
-		var err = fmt.Errorf("cannot update issue %s, it does not exist", issue.Id)
+func UpdateIssue(issueId, title, markdownBody string, tags []string) (Issue, error) {
+	if !issueExists(issueId) {
+		var err = fmt.Errorf("cannot update issue %s, it does not exist", issueId)
 		return Issue{}, err
 	}
 
-	return issue, writeIssue(issue)
-}
-
-func GetIssue(id string) (Issue, error) {
-	if !issueExists(id) {
-		var err = fmt.Errorf("cannot get issue %s, it does not exist", id)
+	err := isValidTags(tags)
+	if !err {
+		var err = fmt.Errorf("cannot add issue, tags %v are invalid, they should contains lowercase letters, numbers and hyphens only - starting with a letter", tags)
 		return Issue{}, err
 	}
 
-	return readIssue(id)
+	issue := Issue{
+		Id:           issueId,
+		Title:        title,
+		MarkdownBody: markdownBody,
+		Tags:         tags,
+	}
+
+	return issue, writeIssue(issue.Id, issue.Title, issue.MarkdownBody, issue.Tags)
+}
+
+func GetIssue(issueId string) (Issue, error) {
+	if !issueExists(issueId) {
+		var err = fmt.Errorf("cannot get issue %s, it does not exist", issueId)
+		return Issue{}, err
+	}
+
+	return readIssue(issueId)
+}
+
+func GetIssues(filterTags []string, includeDeleted bool) ([]Issue, error) {
+	return readIssues(filterTags, includeDeleted)
+}
+
+func AddTags(issueId string, tags []string) error {
+	// TODO: Make atomic.
+	for _, tag := range tags {
+		if err := AddTag(issueId, tag); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func AddTag(issueId, tag string) error {

@@ -3,9 +3,10 @@ package repository
 import "encoding/json"
 
 type Issue struct {
-	Id           string `json:"id"`
-	Title        string `json:"title"`
-	MarkdownBody string `json:"markdownBody"`
+	Id           string   `json:"id"`
+	Title        string   `json:"title"`
+	MarkdownBody string   `json:"markdownBody"`
+	Tags         []string `json:"tags"`
 }
 
 func (i *Issue) toJson() ([]byte, error) {
