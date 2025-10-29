@@ -28,7 +28,11 @@ Can contain any combination of lowercase letters, numbers and hyphens.  Tags mus
 */
 package tagdb
 
-import "dev.azure.com/trayport/Hackathon/_git/Q/internal/logger"
+import (
+	"errors"
+
+	"dev.azure.com/trayport/Hackathon/_git/Q/internal/logger"
+)
 
 var (
 	dbConnection *db
@@ -60,30 +64,85 @@ func (db *db) Close() error {
 // Tags are optional.  When not provided, all records are returned.
 // When provided, only records matching all tags are returned.
 func (db *db) List(tags []string) ([]TaggedKV, error) {
+	// Validation.
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	panic("not implemented")
 }
 
 // Retrieves a record by its key.
 func (db *db) Get(key string) (taggedKv TaggedKV, found bool, err error) {
+	// Validation.
+	if err := validateKey(key); err != nil {
+		return TaggedKV{}, false, err
+	}
+
 	panic("not implemented")
 }
 
 // Creates or updates a record.
 func (db *db) Set(key, value string) error {
+	// Validation.
+	var err error
+
+	if keyErr := validateKey(key); keyErr != nil {
+		err = errors.Join(err, keyErr)
+	}
+
+	if valueErr := validateValue(key); valueErr != nil {
+		err = errors.Join(err, valueErr)
+	}
+
+	if err != nil {
+		return err
+	}
+
 	panic("not implemented")
 }
 
 // Removes a record from the database.
 func (db *db) Delete(key string) error {
+	if err := validateKey(key); err != nil {
+		// Swallow the delete.  There is no action for a consumer to take.
+		return nil
+	}
+
 	panic("not implemented")
 }
 
 // Adds a tag to a record.
 func (db *db) Tag(key string, tag string) error {
+	// Validation.
+	var err error
+
+	if keyErr := validateKey(key); keyErr != nil {
+		err = errors.Join(err, keyErr)
+	}
+
+	if tagErr := validateTag(tag); tagErr != nil {
+		err = errors.Join(err, tagErr)
+	}
+
+	if err != nil {
+		return err
+	}
+
 	panic("not implemented")
 }
 
 // Removes a tag from a record.
 func (db *db) Untag(key string, tag string) error {
+	if err := validateKey(key); err != nil {
+		// Swallow the delete.  There is no action for a consumer to take.
+		return nil
+	}
+
+	if tagErr := validateTag(tag); tagErr != nil {
+		// Swallow the delete.  There is no action for a consumer to take.
+		return nil
+	}
+
 	panic("not implemented")
 }

@@ -45,6 +45,15 @@ func validateKey(key string) error {
 	return nil
 }
 
+// Validates a TaggedKV value.
+func validateValue(value string) error {
+	if value != strings.ToValidUTF8(key, "") {
+		return fmt.Errorf("value cannot contain non UTF8 characters")
+	}
+
+	return nil
+}
+
 // Validates user tags.
 func validateTags(tags []string) error {
 	var errs []error
