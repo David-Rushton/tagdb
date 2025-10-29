@@ -47,7 +47,7 @@ func validateKey(key string) error {
 
 // Validates a TaggedKV value.
 func validateValue(value string) error {
-	if value != strings.ToValidUTF8(key, "") {
+	if value != strings.ToValidUTF8(value, "") {
 		return fmt.Errorf("value cannot contain non UTF8 characters")
 	}
 
