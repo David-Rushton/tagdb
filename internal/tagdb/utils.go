@@ -145,3 +145,7 @@ func intersect[T comparable](left, right []T) []T {
 	}
 	return result
 }
+
+func prepend[T any](s []T, v T) []T {
+	return append([]T{v}, s...)
+}

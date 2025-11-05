@@ -1,34 +1,21 @@
 package tagdb
 
 import (
-	"sync"
-
 	"dev.azure.com/trayport/Hackathon/_git/Q/internal/bimap"
 	"dev.azure.com/trayport/Hackathon/_git/Q/internal/logger"
-)
-
-var (
-	inMemStoreConnection *inMemStore
 )
 
 type inMemStore struct {
 	data  map[string]string
 	index bimap.BiMap[string]
-	mu    sync.RWMutex
 }
 
-func connectToInMemStore() *inMemStore {
-	logger.Info("connecting to in-mem store")
-
-	if inMemStoreConnection == nil {
-		logger.Info("initializing in-mem store")
-		inMemStoreConnection = &inMemStore{}
-	}
+func newInMemStore() *inMemStore {
+	logger.Info("initializing in-mem store")
 
 	return &inMemStore{
 		data:  map[string]string{},
 		index: bimap.BiMap[string]{},
-		mu:    sync.RWMutex{},
 	}
 }
 
@@ -36,9 +23,6 @@ func connectToInMemStore() *inMemStore {
 // Tags are optional.  When not provided, all records are returned.
 // When provided, only records matching all tags are returned.
 func (db *inMemStore) list(tags []string) []TaggedKV {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
 	logger.Infof("in-mem list with tags %v", tags)
 
 	var result []TaggedKV
@@ -96,9 +80,6 @@ func (db *inMemStore) list(tags []string) []TaggedKV {
 
 // Retrieves a record by its key.
 func (db *inMemStore) get(key string) (taggedKv TaggedKV, found bool) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
 	logger.Infof("in-mem get with keys %s", key)
 
 	value, found := db.data[key]
@@ -113,49 +94,33 @@ func (db *inMemStore) get(key string) (taggedKv TaggedKV, found bool) {
 	return TaggedKV{}, false
 }
 
-// Creates or updates a record.
-func (db *inMemStore) set(key, value string) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+func (db *inMemStore) apply(op []operator) {
+	logger.Infof("applying %d operation(s) to in-mem store", len(op))
+	for _, operation := range op {
+		switch o := operation.(type) {
+		case *setOperation:
+			logger.Infof("applying in-mem set operation: key=`%s`, value=`%s`", o.key, o.value)
+			db.data[o.key] = o.value
 
-	logger.Infof("in-mem set with key %s with value %s", key, value)
+		case *deleteOperation:
+			logger.Infof("applying in-mem delete operation: key=`%s`", o.key)
+			delete(db.data, o.key)
 
-	db.data[key] = value
-}
+		case *tagOperation:
+			logger.Infof("applying in-mem tag operation: key=`%s`, tag=`%s`", o.key, o.tag)
+			db.index.Add(o.key, o.tag)
 
-// Removes a record from the database.
-func (db *inMemStore) delete(key string) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+		case *untagOperation:
+			logger.Infof("applying in-mem untag operation: key=`%s`, tag=`%s`", o.key, o.tag)
+			db.index.Remove(o.key, o.tag)
 
-	// Delete tags.
-	for _, tag := range db.index.GetValues(key) {
-		db.index.Remove(key, tag)
-	}
+		case *commitOperation:
+			// No-op.
 
-	// Delete key-value pair.
-	delete(db.data, key)
-}
-
-// Adds a tag to a record.
-func (db *inMemStore) tag(key string, tag string) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	if _, found := db.data[key]; found {
-		// Add is idempotent.
-		// No need to check if the tag already exists.
-		db.index.Add(key, tag)
-	}
-}
-
-// Removes a tag from a record.
-func (db *inMemStore) untag(key string, tag string) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	if _, found := db.data[key]; found {
-		// Safe to call if tag does not exist.
-		db.index.Remove(key, tag)
+		default:
+			// The in-mem store **must** never diverge from the wal.
+			// There is no recovery mechanism.
+			logger.Panicf("cannot apply unknown operation type: %+v", operation)
+		}
 	}
 }

@@ -29,7 +29,9 @@ Can contain any combination of lowercase letters, numbers and hyphens.  Tags mus
 package tagdb
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"dev.azure.com/trayport/Hackathon/_git/Q/internal/logger"
 )
@@ -39,53 +41,144 @@ var (
 )
 
 type db struct {
-	inMemStore *inMemStore
+	storage   *storage
+	config    *dbConfig
+	isRunning bool
 }
 
-func Connect() *db {
+func Start(root string, ctx context.Context, configOptions ...dbConfigurer) {
+	if dbConnection != nil {
+		logger.Info("tagdb already started")
+		return
+	}
+
+	logger.Info("starting tagdb")
+
+	// Configure.
+	config := &dbConfig{}
+	config = WithDefaultConfig()(config)
+	for _, configOption := range configOptions {
+		config = configOption(config)
+	}
+
+	// Ensure storage root exists.
+	if err := createDirIfNotExists(root); err != nil {
+		logger.Panicf("cannot create database storage because %s", err)
+	}
+
+	store, err := openStorage(root)
+	if err != nil {
+		logger.Panicf("cannot open database storage because %s", err)
+	}
+
+	// Create connection.
+	dbConnection = &db{
+		storage:   store,
+		config:    config,
+		isRunning: true,
+	}
+
+	// Start background maintenance tasks.
+	go func(store *storage, config *dbConfig, ctx context.Context) {
+		ticker := time.NewTicker(config.backgroundTaskInterval)
+
+		select {
+		case <-ticker.C:
+			if dbConnection == nil || !dbConnection.isRunning {
+				logger.Infof("shutting down maintenance tasks")
+				return
+			}
+
+			logger.Info("running maintenance tasks")
+			dbConnection.storage.maybeRoll(config.rollWalAfterBytes)
+			dbConnection.storage.maybeCompact()
+
+		case <-ctx.Done():
+			logger.Infof("shutting down maintenance tasks")
+			return
+		}
+
+	}(store, config, ctx)
+}
+
+func Stop() {
+	if dbConnection == nil {
+		logger.Info("tagdb not started")
+		return
+	}
+
+	if !dbConnection.isRunning {
+		logger.Info("tagdb already stopped")
+		return
+	}
+
+	dbConnection.isRunning = false
+	dbConnection.storage.close()
+}
+
+func Connect() (*db, error) {
 	logger.Info("connecting to db")
 
 	if dbConnection == nil {
-		logger.Info("initialising db")
-		dbConnection = &db{
-			inMemStore: connectToInMemStore(),
-		}
+		err := logger.Error("database not started")
+		return nil, err
 	}
 
-	return dbConnection
-}
+	if !dbConnection.isRunning {
+		err := logger.Error("database not running")
+		return nil, err
+	}
 
-// Closes the connection and releases any held resources.
-func (db *db) Close() error {
-	panic("not implemented")
+	return dbConnection, nil
 }
 
 // List records by tags.
 // Tags are optional.  When not provided, all records are returned.
 // When provided, only records matching all tags are returned.
 func (db *db) List(tags []string) ([]TaggedKV, error) {
+	logger.Infof("db list records with tags `%+v`", tags)
+
 	// Validation.
-	if err := validateTags(tags); err != nil {
-		return nil, err
+	if !db.isRunning {
+		err := logger.Error("cannot list because database is not running")
+		return []TaggedKV{}, err
 	}
 
-	panic("not implemented")
+	if err := validateTags(tags); err != nil {
+		return []TaggedKV{}, err
+	}
+
+	return db.storage.list(tags)
 }
 
 // Retrieves a record by its key.
 func (db *db) Get(key string) (taggedKv TaggedKV, found bool, err error) {
+	logger.Infof("db get record with key `%v`", key)
+
 	// Validation.
+	if !db.isRunning {
+		err := logger.Error("cannot get because database is not running")
+		return TaggedKV{}, false, err
+	}
+
 	if err := validateKey(key); err != nil {
 		return TaggedKV{}, false, err
 	}
 
-	panic("not implemented")
+	return db.storage.get(key)
 }
 
 // Creates or updates a record.
 func (db *db) Set(key, value string) error {
+	logger.Infof("db set record with key `%s` and value `%s`", key, value)
+
 	// Validation.
 	var err error
+
+	if !db.isRunning {
+		notRunningErr := logger.Error("cannot set because database is not running")
+		err = errors.Join(err, notRunningErr)
+	}
 
 	if keyErr := validateKey(key); keyErr != nil {
 		err = errors.Join(err, keyErr)
@@ -99,23 +192,43 @@ func (db *db) Set(key, value string) error {
 		return err
 	}
 
-	panic("not implemented")
+	return db.storage.set(key, value)
 }
 
 // Removes a record from the database.
 func (db *db) Delete(key string) error {
-	if err := validateKey(key); err != nil {
-		// Swallow the delete.  There is no action for a consumer to take.
-		return nil
+	logger.Infof("db delete record with key `%s`", key)
+
+	// Validation.
+	var err error
+
+	if !db.isRunning {
+		notRunningErr := logger.Error("cannot delete because database is not running")
+		err = errors.Join(err, notRunningErr)
 	}
 
-	panic("not implemented")
+	if keyErr := validateKey(key); err != nil {
+		err = errors.Join(err, keyErr)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return db.storage.delete(key)
 }
 
 // Adds a tag to a record.
 func (db *db) Tag(key string, tag string) error {
+	logger.Infof("db tag record with key `%s` and tag `%s`", key, tag)
+
 	// Validation.
 	var err error
+
+	if !db.isRunning {
+		notRunningErr := logger.Error("cannot tag because database is not running")
+		err = errors.Join(err, notRunningErr)
+	}
 
 	if keyErr := validateKey(key); keyErr != nil {
 		err = errors.Join(err, keyErr)
@@ -129,20 +242,32 @@ func (db *db) Tag(key string, tag string) error {
 		return err
 	}
 
-	panic("not implemented")
+	return db.storage.tag(key, tag)
 }
 
 // Removes a tag from a record.
 func (db *db) Untag(key string, tag string) error {
-	if err := validateKey(key); err != nil {
-		// Swallow the delete.  There is no action for a consumer to take.
-		return nil
+	logger.Infof("db untag record with key `%s` and tag `%s`", key, tag)
+
+	// Validation.
+	var err error
+
+	if !db.isRunning {
+		notRunningErr := logger.Error("cannot untag because database is not running")
+		err = errors.Join(err, notRunningErr)
+	}
+
+	if keyErr := validateKey(key); keyErr != nil {
+		err = errors.Join(err, keyErr)
 	}
 
 	if tagErr := validateTag(tag); tagErr != nil {
-		// Swallow the delete.  There is no action for a consumer to take.
-		return nil
+		err = errors.Join(err, tagErr)
 	}
 
-	panic("not implemented")
+	if err != nil {
+		return err
+	}
+
+	return db.storage.untag(key, tag)
 }

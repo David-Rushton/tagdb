@@ -12,7 +12,4 @@ type TaggedKV struct {
 	// Tags can only contain lowercase letters, numbers and hyphens.
 	// Tags must be between 1 and 20 characters long.
 	Tags []string
-
-	// Soft delete marker.
-	isDeleted bool
 }

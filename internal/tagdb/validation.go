@@ -24,11 +24,11 @@ func validateKey(key string) error {
 		return fmt.Errorf("keys cannot start or end with whitespace")
 	}
 
-	if len(key) >= minKeyLength {
+	if len(key) < minKeyLength {
 		return fmt.Errorf("keys must contains at least %d characters", minKeyLength)
 	}
 
-	if len(key) < maxKeyLength {
+	if len(key) > maxKeyLength {
 		return fmt.Errorf("key cannot exceed max length of %d", minKeyLength)
 	}
 

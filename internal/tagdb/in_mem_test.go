@@ -1,201 +1,257 @@
 package tagdb
 
 import (
+	"cmp"
 	"slices"
 	"testing"
 )
 
-func Test_InMemStore_ShouldRoundTripKeyValuePairs(t *testing.T) {
+func Test_InMemStore_ShouldRoundTrip(t *testing.T) {
 	// Arrange
+	txId := "test-transaction-id"
 	testCases := []struct {
-		key   string
-		value string
+		op       operator
+		expected TaggedKV
 	}{
-		{"key1", "value1"},
-		{"key2", "value2"},
-		{"key3", "value3"},
+		{op: &setOperation{transactionId: txId, key: "key1", value: "value1"}, expected: TaggedKV{Key: "key1", Value: "value1"}},
+		{op: &setOperation{transactionId: txId, key: "key2", value: "value2"}, expected: TaggedKV{Key: "key2", Value: "value2"}},
+		{op: &setOperation{transactionId: txId, key: "key3", value: "value3"}, expected: TaggedKV{Key: "key3", Value: "value3"}},
 	}
-	db := connectToInMemStore()
+	db := newInMemStore()
 
 	// Act
 	for _, testCase := range testCases {
-		db.set(testCase.key, testCase.value)
+		db.apply([]operator{testCase.op})
 	}
 
 	// Assert
 	for _, testCase := range testCases {
-		taggedKv, found := db.get(testCase.key)
+		actual, found := db.get(testCase.expected.Key)
 		if !found {
-			t.Errorf("Expected to find key %s, but it was not found.", testCase.key)
+			t.Errorf("Expected to find key `%s`, but it was not found.", testCase.expected.Key)
 			continue
 		}
 
-		if taggedKv.Key != testCase.key {
-			t.Errorf("Expected key %s, but got %s.",
-				testCase.key, taggedKv.Key)
+		if actual.Key != testCase.expected.Key {
+			t.Errorf("Expected key `%s`, but got `%s`.",
+				testCase.expected.Key, actual.Key)
 		}
 
-		if taggedKv.Value != testCase.value {
-			t.Errorf("Expected value %s for key %s, but got %s.",
-				testCase.value, testCase.key, taggedKv.Value)
+		if actual.Value != testCase.expected.Value {
+			t.Errorf("Expected value `%s` for key `%s`, but got `%s`.",
+				testCase.expected.Value, testCase.expected.Key, actual.Value)
 		}
 	}
 }
 
-func Test_InMemStore_ShouldNotListKeysWithoutTag(t *testing.T) {
+func Test_InMemStore_get_ShouldNotReturnUnknownKeys(t *testing.T) {
 	// Arrange
-	db := connectToInMemStore()
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key1", value: "value1"},
+	}
+	db.apply(ops)
 
 	// Act
-	taggedKV, found := db.get("key-that-does-not-exist")
+	taggedKV, found := db.get("invalid-key")
 
 	// Assert
 	if found {
-		t.Errorf("Expected not to find key 'key-that-does-not-exist', but it was found with value %s", taggedKV.Value)
+		t.Errorf("Invalid 'invalid-key' found with key `%s` and value `%s`", taggedKV.Key, taggedKV.Value)
 	}
 }
 
-func Test_InMemStore_ShouldNotListDeletedKeys(t *testing.T) {
+func Test_InMemStore_get_ShouldNotReturnDeletedKeys(t *testing.T) {
 	// Arrange
-	db := connectToInMemStore()
-	db.set("deleted-key", "value to be deleted")
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "to-be-deleted", value: "value1"},
+		&deleteOperation{transactionId: "tx1", key: "deleted-key"},
+	}
+	db.apply(ops)
 
 	// Act
-	db.delete("deleted-key")
 	taggedKV, found := db.get("deleted-key")
 
 	// Assert
 	if found {
-		t.Errorf("Expected not to find key 'deleted-key', but it was found with value %s", taggedKV.Value)
+		t.Errorf("Deleted 'deleted-key' found with key `%s` and value `%s`", taggedKV.Key, taggedKV.Value)
 	}
 }
 
-func Test_InMemStore_ShouldNotListDeletedKeysByTag(t *testing.T) {
+func Test_InMemStore_list_ShouldReturnTaggedKeys(t *testing.T) {
 	// Arrange
-	db := connectToInMemStore()
-	db.set("deleted-key", "value")
-	db.tag("deleted-key", "tag")
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key-1", value: "value-1"},
+		&setOperation{transactionId: "tx1", key: "key-2", value: "value-2"},
+		&setOperation{transactionId: "tx1", key: "key-3", value: "value-3"},
+		&tagOperation{transactionId: "tx1", key: "key-1", tag: "find-me"},
+		&tagOperation{transactionId: "tx2", key: "key-2", tag: "find-me"},
+	}
+	db.apply(ops)
 
 	// Act
-	db.delete("deleted-key")
-	taggedKVs := db.list([]string{"tag"})
+	taggedKVs := db.list([]string{"find-me"})
 
 	// Assert
-	if len(taggedKVs) != 0 {
-		t.Errorf("Expected not to find any keys but found %d", len(taggedKVs))
+	expectedCount := 2
+	if len(taggedKVs) != expectedCount {
+		t.Errorf("Expected %d tagged KVs, but found %d", expectedCount, len(taggedKVs))
 	}
-}
 
-func Test_InMemStore_ShouldNotListDeletedTags(t *testing.T) {
-	// Arrange
-	db := connectToInMemStore()
-	db.set("key", "value")
-	db.tag("key", "tag")
-
-	// Act
-	db.untag("key", "tag")
-	taggedKVs := db.list([]string{"tag"})
-
-	// Assert
-	if len(taggedKVs) != 0 {
-		t.Errorf("Expected not to find any keys but found %d", len(taggedKVs))
-	}
-}
-
-func Test_InMemStore_ShouldListTaggedKVs(t *testing.T) {
-	// Arrange
-	db := connectToInMemStore()
-	db.set("foo", "find-me")
-	db.tag("foo", "find")
-	db.set("bar", "and-me")
-	db.tag("bar", "find")
-	db.set("baz", "but-not-me")
-
-	// Act
-	taggedKVs := db.list([]string{"find"})
 	slices.SortFunc(taggedKVs, sortTaggedKVs)
 
-	// Assert
-	if len(taggedKVs) != 2 {
-		t.Errorf("Expected to find 2 tagged KVs, but found %d", len(taggedKVs))
+	if taggedKVs[0].Key != "key-1" {
+		t.Errorf("Expected first tagged KV to have key 'key-1', but got '%s'", taggedKVs[0].Key)
 	}
 
-	if taggedKVs[0].Key != "bar" {
-		t.Errorf("Expected first tagged KV to have key 'bar', but got '%s'", taggedKVs[0].Key)
+	if taggedKVs[0].Value != "value-1" {
+		t.Errorf("Expected first tagged KV to have value 'value-1', but got '%s'", taggedKVs[0].Value)
 	}
 
-	if taggedKVs[1].Key != "foo" {
-		t.Errorf("Expected second tagged KV to have key 'foo', but got '%s'", taggedKVs[1].Key)
+	if taggedKVs[1].Key != "key-2" {
+		t.Errorf("Expected second tagged KV to have key 'key-2', but got '%s'", taggedKVs[1].Key)
+	}
+
+	if taggedKVs[1].Value != "value-2" {
+		t.Errorf("Expected second tagged KV to have value 'value-2', but got '%s'", taggedKVs[0].Value)
 	}
 }
 
-func Test_InMemStore_ShouldNotFindUntaggedKVs(t *testing.T) {
+func Test_InMemStore_list_ShouldNotReturnUntaggedKeys(t *testing.T) {
 	// Arrange
-	db := connectToInMemStore()
-	db.set("foo", "some value")
-	db.tag("foo", "some-tag")
-	db.set("bar", "some value")
-	db.tag("bar", "some-tag")
-	db.set("baz", "some value")
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key-1", value: "value-1"},
+		&setOperation{transactionId: "tx1", key: "key-2", value: "value-2"},
+		&setOperation{transactionId: "tx1", key: "key-3", value: "value-3"},
+		&tagOperation{transactionId: "tx1", key: "key-1", tag: "find-me"},
+		&tagOperation{transactionId: "tx2", key: "key-2", tag: "find-me"},
+		&untagOperation{transactionId: "tx2", key: "key-2", tag: "find-me"},
+	}
+	db.apply(ops)
 
 	// Act
-	taggedKVs := db.list([]string{"non-existent-tag"})
+	taggedKVs := db.list([]string{"find-me"})
 
 	// Assert
-	if len(taggedKVs) != 0 {
-		t.Errorf("Expected to find 0 tagged KVs, but found %d", len(taggedKVs))
+	expectedCount := 1
+	if len(taggedKVs) != expectedCount {
+		t.Errorf("Expected %d tagged KVs, but found %d", expectedCount, len(taggedKVs))
+	}
+
+	slices.SortFunc(taggedKVs, sortTaggedKVs)
+
+	if taggedKVs[0].Key != "key-1" {
+		t.Errorf("Expected first tagged KV to have key 'key-1', but got '%s'", taggedKVs[0].Key)
+	}
+
+	if taggedKVs[0].Value != "value-1" {
+		t.Errorf("Expected first tagged KV to have value 'value-1', but got '%s'", taggedKVs[0].Value)
 	}
 }
 
-func Test_InMemStore_ShouldNotFindPartialMatches(t *testing.T) {
-	// Arrange
-	db := connectToInMemStore()
-	db.set("foo", "some value") // foo has tags a and b
-	db.tag("foo", "a")
-	db.tag("foo", "b")
-	db.set("bar", "some value") // bar has tags b and c
-	db.tag("bar", "b")
-	db.tag("bar", "c")
-	db.set("bar", "some value") // bar has tags a and c
-	db.tag("baz", "a")
-	db.tag("baz", "c")
-
-	// Act
-	taggedKVs := db.list([]string{"a", "b", "c"})
-
-	// Assert
-	if len(taggedKVs) != 0 {
-		t.Errorf("Expected to find 0 tagged KVs, but found %d", len(taggedKVs))
-	}
+func sortTaggedKVs(a, b TaggedKV) int {
+	return cmp.Compare(a.Key, b.Key)
 }
 
-func Test_InMemStore_ShouldListAllTaggedKVs(t *testing.T) {
+func Test_InMemStore_list_ShouldReturnAllKeysWhenNoTagsProvided(t *testing.T) {
 	// Arrange
-	db := connectToInMemStore()
-	db.set("foo", "value-foo")
-	db.tag("foo", "tag1")
-	db.tag("foo", "tag2")
-	db.tag("foo", "tag3")
-	db.set("bar", "value-bar")
-	db.tag("bar", "tag1")
-	db.set("baz", "value-baz")
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key-1", value: "value-1"},
+		&setOperation{transactionId: "tx1", key: "key-2", value: "value-2"},
+		&setOperation{transactionId: "tx1", key: "key-3", value: "value-3"},
+	}
+	db.apply(ops)
 
 	// Act
 	taggedKVs := db.list([]string{})
 
 	// Assert
-	if len(taggedKVs) != 3 {
-		t.Errorf("Expected to find 3 tagged KVs, but found %d", len(taggedKVs))
+	expectedCount := 3
+	if len(taggedKVs) != expectedCount {
+		t.Errorf("Expected %d tagged KVs, but found %d", expectedCount, len(taggedKVs))
 	}
 }
 
-func sortTaggedKVs(a, b TaggedKV) int {
-	switch {
-	case a.Key > b.Key:
-		return 1
-	case a.Key < b.Key:
-		return -1
-	default:
-		return 0
+func Test_InMemStore_list_ShouldReturnNothingWhenNoneMatch(t *testing.T) {
+	// Arrange
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key-1", value: "value-1"},
+		&setOperation{transactionId: "tx1", key: "key-2", value: "value-2"},
+		&setOperation{transactionId: "tx1", key: "key-3", value: "value-3"},
+		&tagOperation{transactionId: "tx1", key: "key-1", tag: "some-tag"},
+		&tagOperation{transactionId: "tx2", key: "key-2", tag: "another-tag"},
+	}
+	db.apply(ops)
+
+	// Act
+	taggedKVs := db.list([]string{"non-existent-tag"})
+
+	// Assert
+	expectedCount := 0
+	if len(taggedKVs) != expectedCount {
+		t.Errorf("Expected %d tagged KVs, but found %d", expectedCount, len(taggedKVs))
+	}
+}
+
+func Test_InMemStore_list_ShouldReturnNothingWhenNoneMatchAll(t *testing.T) {
+	// Arrange
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key-1", value: "value-1"},
+		&setOperation{transactionId: "tx1", key: "key-2", value: "value-2"},
+		&setOperation{transactionId: "tx1", key: "key-3", value: "value-3"},
+		&tagOperation{transactionId: "tx1", key: "key-1", tag: "tag-1"},
+		&tagOperation{transactionId: "tx2", key: "key-2", tag: "tag-2"},
+	}
+	db.apply(ops)
+
+	// Act
+	taggedKVs := db.list([]string{"tag-1", "tag-2"})
+
+	// Assert
+	expectedCount := 0
+	if len(taggedKVs) != expectedCount {
+		t.Errorf("Expected %d tagged KVs, but found %d", expectedCount, len(taggedKVs))
+	}
+}
+
+func Test_InMemStore_list_ShouldReturnItemsWithMatchingTags(t *testing.T) {
+	// Arrange
+	db := newInMemStore()
+	ops := []operator{
+		&setOperation{transactionId: "tx1", key: "key-1", value: "value-1"},
+		&setOperation{transactionId: "tx1", key: "key-2", value: "value-2"},
+		&setOperation{transactionId: "tx1", key: "key-3", value: "value-3"},
+		&tagOperation{transactionId: "tx1", key: "key-1", tag: "tag-1"},
+		&tagOperation{transactionId: "tx1", key: "key-1", tag: "tag-2"},
+		&tagOperation{transactionId: "tx1", key: "key-2", tag: "tag-1"},
+		&tagOperation{transactionId: "tx1", key: "key-2", tag: "tag-2"},
+		&tagOperation{transactionId: "tx2", key: "key-2", tag: "tag-3"},
+		&tagOperation{transactionId: "tx2", key: "key-3", tag: "tag-3"},
+	}
+	db.apply(ops)
+
+	// Act
+	taggedKVs := db.list([]string{"tag-1", "tag-2"})
+
+	// Assert
+	expectedCount := 2
+	if len(taggedKVs) != expectedCount {
+		t.Errorf("Expected %d tagged KVs, but found %d", expectedCount, len(taggedKVs))
+	}
+
+	slices.SortFunc(taggedKVs, sortTaggedKVs)
+
+	if taggedKVs[0].Key != "key-1" {
+		t.Errorf("Expected first tagged KV to have key 'key-1', but got '%s'", taggedKVs[0].Key)
+	}
+
+	if taggedKVs[1].Key != "key-2" {
+		t.Errorf("Expected second tagged KV to have key 'key-2', but got '%s'", taggedKVs[0].Key)
 	}
 }

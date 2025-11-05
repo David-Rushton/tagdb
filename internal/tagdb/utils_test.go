@@ -188,3 +188,38 @@ func Test_intersect(t *testing.T) {
 		}
 	}
 }
+
+func Test_prepend_PreservesOrdering(t *testing.T) {
+	testCases := []struct {
+		prepend  int
+		to       []int
+		expected []int
+	}{
+		{
+			prepend:  1,
+			to:       []int{2, 3, 4},
+			expected: []int{1, 2, 3, 4},
+		},
+		{
+			prepend:  5,
+			to:       []int{},
+			expected: []int{5},
+		},
+		{
+			prepend:  0,
+			to:       []int{1, 2, 3},
+			expected: []int{0, 1, 2, 3},
+		},
+	}
+
+	for _, testCase := range testCases {
+		actual := prepend(testCase.to, testCase.prepend)
+		if !slices.Equal(actual, testCase.expected) {
+			t.Errorf("Expected: %v.  Actual: %v.  Prepend: %v.  To: %v.",
+				testCase.expected,
+				actual,
+				testCase.prepend,
+				testCase.to)
+		}
+	}
+}
