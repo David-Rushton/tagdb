@@ -56,15 +56,15 @@ func validateValue(value string) error {
 
 // Validates user tags.
 func validateTags(tags []string) error {
-	var errs []error
+	var errs error
 
 	for _, tag := range tags {
 		if err := validateTag(tag); err != nil {
-			errs = append(errs, err)
+			errs = errors.Join(errs, err)
 		}
 	}
 
-	return errors.Join(errs...)
+	return errs
 }
 
 // Validates a user tag.

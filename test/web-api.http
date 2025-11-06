@@ -1,0 +1,167 @@
+## Test round trip
+## Add key-value pair, add two tags, retrieve and verify
+POST http://localhost:31979/api/keys
+Content-Type: application/json
+
+{
+  "key": "key-1",
+  "value": "value-1"
+}
+
+?? status == 200
+
+POST http://localhost:31979/api/tags
+Content-Type: application/json
+
+{
+  "key": "key-1",
+  "tag": "tag-1"
+}
+
+?? status == 200
+
+POST http://localhost:31979/api/tags
+Content-Type: application/json
+
+{
+  "key": "key-1",
+  "tag": "tag-2"
+}
+
+?? status == 200
+
+GET http://localhost:31979/api/keys/key-1
+
+?? status == 200
+?? header content-type == application/json
+?? body key == key-1
+?? body value == value-1
+?? body tags isarray
+?? body tags contains tag-1
+?? body tags contains tag-2
+
+
+## Test untagging
+POST http://localhost:31979/api/keys
+Content-Type: application/json
+
+{
+  "key": "key-2",
+  "value": "value-2"
+}
+
+?? status == 200
+
+POST http://localhost:31979/api/tags
+Content-Type: application/json
+
+{
+  "key": "key-2",
+  "tag": "tag-2"
+}
+
+?? status == 200
+
+DELETE http://localhost:31979/api/tags/tag-2/key-2
+
+?? status == 200
+
+GET http://localhost:31979/api/keys/key-2
+
+?? status == 200
+?? header content-type == application/json
+?? body key == key-2
+?? body value == value-2
+?? body tags isarray
+?? body tags !contains tag-1
+?? body tags !contains tag-2
+
+## Test deleted keys are removed
+POST http://localhost:31979/api/keys
+Content-Type: application/json
+
+{
+  "key": "key-3",
+  "value": "value-3"
+}
+
+?? status == 200
+
+DELETE http://localhost:31979/api/keys/key-3
+
+?? status == 200
+
+GET http://localhost:31979/api/keys/key-3
+
+?? status == 404
+
+## Test listing all keys
+GET http://localhost:31979/api/keys
+
+?? status == 200
+?? header content-type == application/json
+
+## Test listing keys with tags
+POST http://localhost:31979/api/keys
+Content-Type: application/json
+
+{
+  "key": "find-1",
+  "value": "find-1"
+}
+
+?? status == 200
+
+POST http://localhost:31979/api/tags
+Content-Type: application/json
+
+{
+  "key": "find-1",
+  "tag": "find"
+}
+
+?? status == 200
+
+POST http://localhost:31979/api/keys
+Content-Type: application/json
+
+{
+  "key": "find-2",
+  "value": "find-2"
+}
+
+?? status == 200
+
+POST http://localhost:31979/api/tags
+Content-Type: application/json
+
+{
+  "key": "find-2",
+  "tag": "find"
+}
+
+POST http://localhost:31979/api/keys
+Content-Type: application/json
+
+{
+  "key": "find-3",
+  "value": "find-3"
+}
+
+?? status == 200
+
+GET http://localhost:31979/api/keys?tags=find
+
+?? status == 200
+?? header content-type == application/json
+{{
+    const { equal } = require('assert');
+    test('finds tagged keys only', () => {
+        const responseBody = JSON.parse(response.body);
+        equal(responseBody.length, 2);
+        const keys = responseBody.map(item => item.key);
+        equal(keys.includes('find-1'), true);
+        equal(keys.includes('find-2'), true);
+        equal(keys.includes('find-3'), false);
+    });
+}}

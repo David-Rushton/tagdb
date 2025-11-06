@@ -85,13 +85,13 @@ func Start(root string, ctx context.Context, configOptions ...dbConfigurer) {
 		select {
 		case <-ticker.C:
 			if dbConnection == nil || !dbConnection.isRunning {
-				logger.Infof("shutting down maintenance tasks")
+				logger.Infof("shutting down db")
+				Stop()
 				return
 			}
 
 			logger.Info("running maintenance tasks")
 			dbConnection.storage.maybeRoll(config.rollWalAfterBytes)
-			dbConnection.storage.maybeCompact()
 
 		case <-ctx.Done():
 			logger.Infof("shutting down maintenance tasks")

@@ -125,7 +125,8 @@ func (s *storage) tag(key, tag string) error {
 		return fmt.Errorf("key not found `%s` ", key)
 	}
 	if slices.Contains(taggedKV.Tags, tag) {
-		return fmt.Errorf("Tag `%s` already exists on key `%s`", tag, key)
+		logger.Infof("tag `%s` already exists on key `%s`", tag, key)
+		return nil
 	}
 
 	tx.tag(key, tag)
@@ -163,8 +164,4 @@ func (s *storage) maybeRoll(rollWalAfterBytes int64) {
 		logger.Info("rolling wal")
 		s.walManager.roll()
 	}
-}
-
-func (s *storage) maybeCompact() {
-	panic("not implemented")
 }
