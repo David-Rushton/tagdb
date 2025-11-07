@@ -8,8 +8,11 @@ vendor/
 **/*.exe
 tagdb_ws
 tagdb_cli
+!cmd/tagdb_ws
+!cmd/tagdb_cli
 
 # Local configuration.
 .env
 .testEnv/*
 !.testEnv/.gitkeep
+cmd/scratch/*
