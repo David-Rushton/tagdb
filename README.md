@@ -4,8 +4,40 @@ A document db with tags.
 
 ## Things to make and do
 
-- [ ] We need a better name
-- [ ] Update db to in-memory model with WAL persistence backing
-- [ ] Kanban website
-- [ ] Docker compose support
-- [ ] CLI tool
+## Backend
+
+- ✅ In-mem only
+- ✅ Transactions
+- ✅ WAL backed
+- ✅ WAL rolling
+- ✅ Restore in-mem at start up
+
+## Web Server
+
+### Web API
+
+- ✅ Implement all endpoints
+- ✅ Containerize 
+  - ✅ Run db on start up via Docker restart policy
+
+### Web App
+
+- ⌛ Support all endpoints
+- ⌛ Don't CSS forever
+
+## Link Ext
+
+- ⌛ Rewrite using tagdb
+
+## Command Box
+
+- ⌛ Rewrite using tagdb
+
+## CLI
+
+- ⌛ Routes
+- ⌛ Commands
+- ⌛ Arguments
+- ⌛ Options
+- ⌛ Components
+- ⌛ Support all endpoints

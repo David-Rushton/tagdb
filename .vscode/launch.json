@@ -6,9 +6,12 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/web_server",
+            "program": "${workspaceFolder}/cmd/tagdb_ws",
             "env": {
-                "Q_REPOSITORY_ROOT": "C:/Users/davidr/.q/repository"
+                "TAGDB_PORT": "8080",
+                "TAGDB_STORAGE_ROOT": "${workspaceFolder}/.testEnv",
+                "TAGDB_STORAGE_WAL_ROLL_AFTER_BYTES": "10485760",
+                "TAGDB_STORAGE_BACKGROUND_TASK_INTERVAL_MS": "5000"
             }
         }
     ]

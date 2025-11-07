@@ -80,6 +80,11 @@ func Start(root string, ctx context.Context, configOptions ...dbConfigurer) {
 
 	// Start background maintenance tasks.
 	go func(store *storage, config *dbConfig, ctx context.Context) {
+		if config.backgroundTaskInterval <= 0 {
+			logger.Info("background maintenance tasks disabled")
+			return
+		}
+
 		ticker := time.NewTicker(config.backgroundTaskInterval)
 
 		select {
@@ -95,6 +100,7 @@ func Start(root string, ctx context.Context, configOptions ...dbConfigurer) {
 
 		case <-ctx.Done():
 			logger.Infof("shutting down maintenance tasks")
+			Stop()
 			return
 		}
 

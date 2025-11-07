@@ -64,11 +64,11 @@ func WithBackgroundTaskIntervalMs(value int) dbConfigurer {
 			logger.Panic("cannot configure database")
 		}
 
-		if value <= 0 {
-			logger.Panic("cannot configure database, houseKeepingTickIntervalMs must be great than 0")
+		if value < 0 {
+			logger.Panic("cannot configure database, invalid background task interval")
 		}
 
-		if value < 100 {
+		if value > 0 && value < 100 {
 			logger.Warnf("background refresh intervals of %d is below the minimum recommended value of 100", value)
 		}
 

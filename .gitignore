@@ -1,2 +1,15 @@
+# Editors.
+.vscode/settings.json
+
+# Go.
 vendor/
+
+# Binaries.
 **/*.exe
+tagdb_ws
+tagdb_cli
+
+# Local configuration.
+.env
+.testEnv/*
+!.testEnv/.gitkeep
