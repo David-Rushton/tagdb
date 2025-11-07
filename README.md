@@ -1,6 +1,9 @@
-# Q
+# TagDb
 
-A document db with tags.  
+> ⚠️⚠️⚠️ This repository is under construction ⚠️⚠️⚠️
+> Most of what is here is unfinished and does not work
+
+A persist key-value store with searchable tags.
 
 ## Things to make and do
 
