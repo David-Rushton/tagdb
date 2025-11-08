@@ -32,6 +32,7 @@ try {
         --publish 31979:8080 `
         --restart unless-stopped `
         --env TAGDB_PORT=8080 `
+        --env TAGDB_WEB_ROOT=/web `
         --env TAGDB_STORAGE_ROOT=/data `
         --env TAGDB_STORAGE_WAL_ROLL_AFTER_BYTES=10485760 `
         --env TAGDB_STORAGE_BACKGROUND_TASK_INTERVAL_MS=5000 `

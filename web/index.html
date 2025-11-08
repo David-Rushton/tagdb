@@ -1,10 +1,28 @@
-<html>
+<!DOCTYPE html>
+<html lang="en-GB">
     <head>
-        <title>Issues</title>
-        <script src="js/issues.js" defer="true"></script>
+        <meta charset="UTF-8" />
+        <title>tagDb</title>
+        <link rel="stylesheet" href="css/style.css" />
+        <script src="js/logic.js" defer="true"></script>
     </head>
     <body>
-        <h1>Hello, world!</h1>
-        <div onclick="test('api/issues')">clicky</div>
+        <header>
+            <h1 class="title">🏷️ tagDb</h1>
+            <p class="subtitle">A persisted key-value database, with searchable tags</p>
+            <input id="search-input" type="text" placeholder="search tags..." />
+        </header>
+
+        <main>
+            <div id="tagged-key-values-container"></div>
+        </main>
+
+        <template id="tagged-key-value-template">
+            <div class="tkv">
+                <p class="tkv-title"></p>
+                <p class="tkv-value"></p>
+                <p class="tkv-tags"></p>
+            </div>
+        </template>
     </body>
 </html>

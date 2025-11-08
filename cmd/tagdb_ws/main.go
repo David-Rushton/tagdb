@@ -16,6 +16,7 @@ import (
 
 type config struct {
 	portNumber                      int
+	webRoot                         string
 	storageRoot                     string
 	storageWalRollAfterBytes        int64
 	storageBackgroundTaskIntervalMs int
@@ -32,9 +33,9 @@ func main() {
 	addSignalHandlers(cancel)
 	startDatabase(config, ctx)
 	addApiEndpoints()
-	addStaticSite()
+	addStaticSite(config.webRoot)
 
-	if err := runWebServer(config, ctx); err != nil {
+	if err := runWebServer(config.portNumber, ctx); err != nil {
 		logger.Fatalf("web server exited because %s", err)
 	}
 }
@@ -65,28 +66,30 @@ func startDatabase(config config, ctx context.Context) {
 func addApiEndpoints() {
 	logger.Info("adding API endpoint handlers")
 
-	http.HandleFunc("GET /api/keys", List)
-	http.HandleFunc("POST /api/keys", Set)
-	http.HandleFunc("GET /api/keys/{key}", Get)
-	http.HandleFunc("DELETE /api/keys/{key}", Delete)
-	http.HandleFunc("POST /api/tags", Tag)
-	http.HandleFunc("DELETE /api/tags/{tag}/{key}", Untag)
+	http.HandleFunc("GET /api/keys", getKeysHandler)
+	http.HandleFunc("POST /api/keys", setKeyHandler)
+	http.HandleFunc("GET /api/keys/{key}", getKeyHandler)
+	http.HandleFunc("DELETE /api/keys/{key}", deleteKeyHandler)
+	http.HandleFunc("POST /api/tags", postTagHandler)
+	http.HandleFunc("DELETE /api/tags/{tag}/{key}", deleteTagHandler)
 }
 
 // Adds a handler for static site content.
-func addStaticSite() {
+func addStaticSite(webRoot string) {
 	logger.Info("adding static site")
-	http.Handle("/", http.FileServer(http.Dir("web")))
+	http.Handle("/", http.FileServer(http.Dir(webRoot)))
 }
 
 // Starts the web server.
 // Handlers must be added before calling this function.
-func runWebServer(config config, ctx context.Context) error {
-	port := fmt.Sprintf(":%d", config.portNumber)
+func runWebServer(portNumber int, ctx context.Context) error {
+	port := fmt.Sprintf(":%d", portNumber)
 	logger.Infof("starting web server on http://localhost%s", port)
 
+	handler := corsMiddleware(http.DefaultServeMux)
+
 	var webErr error
-	webServer := &http.Server{Addr: port, Handler: nil}
+	webServer := &http.Server{Addr: port, Handler: handler}
 	go func() {
 		if webErr = webServer.ListenAndServe(); webErr != nil {
 			return
@@ -114,6 +117,12 @@ func getConfig() config {
 	if err != nil {
 		logger.Warnf("invalid TAGDB_PORT value `%s`", portStr)
 		portNumber = 8080
+	}
+
+	// Get web root.
+	webRoot := os.Getenv("TAGDB_WEB_ROOT")
+	if webRoot == "" {
+		logger.Panicf("cannot start tagDb because TAGDB_WEB_ROOT is required")
 	}
 
 	// WAL roll after bytes.
@@ -148,6 +157,7 @@ func getConfig() config {
 	// Success.
 	return config{
 		portNumber:                      portNumber,
+		webRoot:                         webRoot,
 		storageRoot:                     storageRoot,
 		storageWalRollAfterBytes:        walRollAfterBytes,
 		storageBackgroundTaskIntervalMs: int(backgroundTaskIntervalMs),

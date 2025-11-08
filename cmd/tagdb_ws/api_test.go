@@ -9,12 +9,12 @@ import (
 )
 
 // TODO: Add more tests.
-func Test_List(t *testing.T) {
+func Test_getKeysHandler(t *testing.T) {
 	// Arrange
 	configTestEnvironment(t)
 	request := httptest.NewRequest("GET", "/list?tags=tag1,tag2", nil)
 	response := httptest.NewRecorder()
-	handler := http.HandlerFunc(List)
+	handler := http.HandlerFunc(getKeysHandler)
 
 	// Act
 	handler.ServeHTTP(response, request)

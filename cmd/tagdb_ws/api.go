@@ -20,7 +20,23 @@ type TagKey struct {
 	Key string `json:"key"`
 }
 
-func List(w http.ResponseWriter, r *http.Request) {
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Vary", "Origin")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, token")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS, POST, PUT")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func getKeysHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("%s %s", r.Method, r.URL.String())
 
 	// Read query string.
@@ -59,7 +75,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func Set(w http.ResponseWriter, r *http.Request) {
+func setKeyHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("%s %s", r.Method, r.URL.String())
 
 	// Read item.
@@ -86,7 +102,7 @@ func Set(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Get(w http.ResponseWriter, r *http.Request) {
+func getKeyHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("%s %s", r.Method, r.URL.String())
 
 	// Read params.
@@ -132,7 +148,7 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
+func deleteKeyHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("%s %s", r.Method, r.URL.String())
 
 	// Read params.
@@ -160,7 +176,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Tag(w http.ResponseWriter, r *http.Request) {
+func postTagHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("%s %s", r.Method, r.URL.String())
 
 	// Read item.
@@ -187,7 +203,7 @@ func Tag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Untag(w http.ResponseWriter, r *http.Request) {
+func deleteTagHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("%s %s", r.Method, r.URL.String())
 
 	// Read params.

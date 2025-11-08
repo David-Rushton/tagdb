@@ -25,8 +25,8 @@ A persist key-value store with searchable tags.
 
 ### Web App
 
+- ✅ Don't CSS forever
 - ⌛ Support all endpoints
-- ⌛ Don't CSS forever
 
 ## Link Ext
 
