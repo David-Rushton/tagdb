@@ -26,20 +26,21 @@ A persist key-value store with searchable tags.
 ### Web App
 
 - ✅ Don't CSS forever
-- ⌛ Support all endpoints
+- ✅ Support all endpoints
 
 ## Link Ext
 
-- ⌛ Rewrite using tagdb
+- ✅ Rewrite using tagdb
+- ✅ Support custom titles
 
 ## Command Box
 
-- ⌛ Rewrite using tagdb
+- ✅ Rewrite using tagdb
 
 ## CLI
 
+- ⌛ Command parsing
 - ⌛ Routes
-- ⌛ Commands
 - ⌛ Arguments
 - ⌛ Options
 - ⌛ Components

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
-	_ "dev.azure.com/trayport/Hackathon/_git/Q/internal/env"
+	_ "dev.azure.com/trayport/Hackathon/_git/Q/internal/dotenv"
 	"dev.azure.com/trayport/Hackathon/_git/Q/internal/logger"
 	"dev.azure.com/trayport/Hackathon/_git/Q/internal/tagdb"
 )

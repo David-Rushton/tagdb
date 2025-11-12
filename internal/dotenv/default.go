@@ -11,7 +11,7 @@ Where <environment> is defined via a TAGDB_ENV environment variable.
 Env takes a best-effort approach.  Failures are logged, but do not prevent
 application startup.
 */
-package env
+package dotenv
 
 import (
 	"bufio"
