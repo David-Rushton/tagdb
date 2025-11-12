@@ -7,21 +7,50 @@
         <script src="js/logic.js" defer="true"></script>
     </head>
     <body>
-        <header>
-            <h1 class="title">🏷️ tagDb</h1>
-            <p class="subtitle">A persisted key-value database, with searchable tags</p>
-            <input id="search-input" type="text" placeholder="search tags..." />
-        </header>
+        <div class="container">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h1 class="title">🏷️ tagDb</h1>
+                    <p class="subtitle">A persisted key-value database, with searchable tags</p>
+                </div>
 
-        <main>
-            <div id="tagged-key-values-container"></div>
-        </main>
+                <div class="sidebar-section">
+                    <h3>Search</h3>
+                    <input id="search-input" type="text" placeholder="search tags..." />
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Add New Item</h3>
+                    <div class="create-item-form">
+                        <input id="new-key-input" type="text" placeholder="key..." />
+                        <input id="new-value-input" type="text" placeholder="value..." />
+                        <button id="create-item-btn">Create</button>
+                    </div>
+                </div>
+            </aside>
+
+            <main>
+                <div id="tagged-key-values-container"></div>
+            </main>
+        </div>
 
         <template id="tagged-key-value-template">
             <div class="tkv">
-                <p class="tkv-title"></p>
-                <p class="tkv-value"></p>
-                <p class="tkv-tags"></p>
+                <div class="tkv-header">
+                    <div>
+                        <p class="tkv-title"></p>
+                        <p class="tkv-value"></p>
+                    </div>
+                    <button class="tkv-delete-btn" title="Delete this item">🗑️</button>
+                </div>
+                <div class="tkv-tags-container">
+                    <p class="tkv-tags-label">Tags:</p>
+                    <div class="tkv-tags"></div>
+                </div>
+                <div class="tkv-add-tag">
+                    <input type="text" class="tkv-tag-input" placeholder="new tag..." />
+                    <button class="tkv-add-tag-btn">Add Tag</button>
+                </div>
             </div>
         </template>
     </body>

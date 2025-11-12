@@ -1,56 +1,283 @@
+/* Updated: 2025-11-11 */
 :root {
-    --background-colour: #191919;
-    --primary-colour: #FFF05A;
-    --secondary-colour: #FFAA5A;
+    --background-colour: #0d0d0d;
+    --sidebar-colour: #1a1a1a;
+    --primary-colour: #d4af37;
+    --primary-colour-hover: #c9a22e;
+    --secondary-colour: #7c9299;
+    --text-colour: #e8e8e8;
+    --accent-colour: #4a7c8c;
+    --danger-colour: #ff6b6b;
+    --danger-colour-hover: #ff4444;
+    --sidebar-width: 320px;
 }
 
-html {
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     font-size: 14px;
     background-color: var(--background-colour);
-    color: var(--primary-colour)
+    color: var(--text-colour);
 }
 
-header {
-    top: 0;
-    left: 0;
-    text-align: left;
-    margin: 10px;
-    width: 100%;
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-colour);
+    border-right: 2px solid var(--primary-colour);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--accent-colour);
+    padding-bottom: 15px;
+}
+
+.sidebar-section {
+    margin-bottom: 30px;
+}
+
+.sidebar-section h3 {
+    color: var(--accent-colour);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 main {
+    flex: 1;
     padding: 20px;
-    overflow: auto;
+    overflow-y: auto;
 }
 
 .title {
     color: var(--primary-colour);
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: 700;
 }
 
 .subtitle {
     color: var(--secondary-colour);
+    margin: 0;
+    font-size: 12px;
 }
 
 #search-input {
-    width: 96%;
-    padding: 12px 20px;
-    margin: 8px 0;
+    width: 100%;
+    padding: 12px;
     box-sizing: border-box;
-    border: 2px solid var(--primary-colour);
+    border: 2px solid var(--accent-colour);
     border-radius: 4px;
     background-color: var(--background-colour);
-    color: var(--secondary-colour);
+    color: var(--text-colour);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: var(--primary-colour);
+}
+
+.create-item-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#new-key-input,
+#new-value-input {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 2px solid var(--accent-colour);
+    border-radius: 4px;
+    background-color: var(--background-colour);
+    color: var(--text-colour);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+#new-key-input:focus,
+#new-value-input:focus {
+    outline: none;
+    border-color: var(--primary-colour);
+}
+
+#create-item-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--primary-colour);
+    color: var(--background-colour);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+#create-item-btn:hover {
+    background-color: var(--primary-colour-hover);
 }
 
 .tkv {
-    border: 2px solid var(--primary-colour);
-    border-radius: 4px;
-    padding: 5px;
-    margin-bottom: 10px;
-    width: auto;
+    border: 1px solid rgba(122, 146, 153, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: rgba(26, 26, 26, 0.5);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.tkv:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    background-color: rgba(26, 26, 26, 0.7);
+}
+
+.tkv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.tkv-header > div {
+    flex: 1;
+}
+
+.tkv-delete-btn {
+    background-color: transparent;
+    border: 1px solid rgba(255, 68, 68, 0.5);
+    color: var(--danger-colour);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.tkv-delete-btn:hover {
+    background-color: rgba(255, 68, 68, 0.2);
+    border-color: var(--danger-colour-hover);
+    color: var(--danger-colour-hover);
+}
+
+.tkv-title {
+    margin: 0 0 8px 0;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--primary-colour);
+}
+
+.tkv-value {
+    margin: 0 0 15px 0;
+    color: var(--text-colour);
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.tkv-tags-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0 0 15px 0;
+}
+
+.tkv-tags-label {
+    color: var(--accent-colour);
+    margin: 0;
+    padding-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .tkv-tags {
-    color: var(--secondary-colour);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+}
+
+.tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background-color: var(--primary-colour);
+    color: var(--background-colour);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tag-remove-btn {
+    background: none;
+    border: none;
+    color: var(--background-colour);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.tag-remove-btn:hover {
+    color: #8b0000;
+}
+
+.tkv-add-tag {
+    display: flex;
+    gap: 8px;
+    margin-top: 0;
+    padding-top: 15px;
+    border-top: 1px solid rgba(122, 146, 153, 0.2);
+}
+
+.tkv-tag-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid rgba(74, 124, 140, 0.3);
+    border-radius: 6px;
+    background-color: rgba(13, 13, 13, 0.5);
+    color: var(--text-colour);
+    font-size: 12px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.tkv-tag-input:focus {
+    outline: none;
+    border-color: var(--primary-colour);
+    background-color: var(--background-colour);
+}
+
+.tkv-add-tag-btn {
+    padding: 8px 16px;
+    background-color: var(--primary-colour);
+    color: var(--background-colour);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.tkv-add-tag-btn:hover {
+    background-color: var(--primary-colour-hover);
 }
