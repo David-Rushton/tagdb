@@ -1,0 +1,145 @@
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+// The main struct holding the settings
+type command struct {
+	name     string
+	settings interface{}
+}
+
+// Example struct that will be passed as the 'settings'
+type MySettings struct {
+	Host string `args:"host_addr"`
+	Port int    `args:"port_num"`
+	User string // This field will be ignored as it has no 'args' tag
+}
+
+// Apply values from a map[string]interface{} to a target struct
+func applyMapToStruct(sourceMap map[string]interface{}, targetStruct interface{}) error {
+	// 1. Get the reflect.Value and ensure it's a pointer to a struct
+	ptrValue := reflect.ValueOf(targetStruct)
+	if ptrValue.Kind() != reflect.Ptr || ptrValue.IsNil() {
+		return fmt.Errorf("targetStruct must be a non-nil pointer to a struct")
+	}
+
+	// Dereference the pointer to get the actual struct value
+	structValue := ptrValue.Elem()
+	if structValue.Kind() != reflect.Struct {
+		return fmt.Errorf("targetStruct must be a pointer to a struct, got %s", structValue.Kind())
+	}
+
+	structType := structValue.Type()
+
+	// 2. Iterate over the struct fields
+	for i := 0; i < structValue.NumField(); i++ {
+		field := structValue.Field(i)
+		fieldType := structType.Field(i)
+
+		// 3. Check for the 'args' struct tag
+		mapTag, found := fieldType.Tag.Lookup("args")
+		if !found {
+			// Field has no 'args' tag, skip it
+			continue
+		}
+
+		// 4. Check if the map contains a value for this tag
+		mapValue, ok := sourceMap[mapTag]
+		if !ok {
+			// Map does not contain a key matching the tag, skip it
+			continue
+		}
+
+		// Ensure the struct field is settable (i.e., it's exported)
+		if !field.CanSet() {
+			fmt.Printf("Warning: Field %s (tag: %s) is not settable (unexported) and will be ignored.\n", fieldType.Name, mapTag)
+			continue
+		}
+
+		// 5. Convert the map value to the struct field's type and assign it
+
+		// Get the reflect.Value of the map value
+		reflectMapValue := reflect.ValueOf(mapValue)
+
+		// Check if the map value type is assignable to the struct field type
+		if !reflectMapValue.Type().AssignableTo(field.Type()) {
+			// This is a common issue when map values are concrete types (e.g., float64 for numbers)
+			// while the struct field is another (e.g., int). We attempt a type conversion.
+
+			convertedValue, err := convertValue(mapValue, field.Type())
+			if err != nil {
+				return fmt.Errorf("failed to convert map value for key '%s' from %T to %s: %w",
+					mapTag, mapValue, field.Type().String(), err)
+			}
+			field.Set(convertedValue)
+			continue
+		}
+
+		// Direct assignment
+		field.Set(reflectMapValue)
+	}
+
+	return nil
+}
+
+// Helper function to handle common type conversions (e.g., float64 to int)
+func convertValue(value interface{}, targetType reflect.Type) (reflect.Value, error) {
+	rv := reflect.ValueOf(value)
+
+	// Handle float64 to integer conversions (common for JSON/map numbers)
+	if rv.Kind() == reflect.Float64 {
+		switch targetType.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return rv.Convert(targetType), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return rv.Convert(targetType), nil
+		}
+	}
+
+	// For other types, try a direct conversion
+	if rv.Type().ConvertibleTo(targetType) {
+		return rv.Convert(targetType), nil
+	}
+
+	return reflect.Value{}, fmt.Errorf("unsupported type conversion from %s to %s", rv.Type().String(), targetType.String())
+}
+
+func main() {
+	// 1. Initialize the target settings struct
+	settings := MySettings{
+		Host: "initial_host",
+		Port: 80,
+		User: "initial_user",
+	}
+
+	// Create the command object
+	myCommand := command{
+		name:     "connect",
+		settings: &settings, // Pass a pointer to the settings struct
+	}
+
+	fmt.Printf("Initial settings: %+v\n", settings)
+
+	// 2. Initialize the source map with values
+	sourceMap := map[string]interface{}{
+		"host_addr": "new_server.com",
+		"port_num":  float64(443), // Simulate map containing a float64 (common with JSON unmarshalling)
+		"extra_key": "ignore_me",
+	}
+
+	// 3. Apply the map values to the settings struct
+	fmt.Println("\n--- Applying map to struct ---")
+
+	// We need to pass the *value* of the settings field, which is a pointer to MySettings
+	err := applyMapToStruct(sourceMap, myCommand.settings)
+
+	if err != nil {
+		fmt.Printf("Error applying map: %v\n", err)
+	} else {
+		fmt.Println("Map successfully applied.")
+		fmt.Printf("\nFinal settings: %+v\n", settings)
+	}
+}

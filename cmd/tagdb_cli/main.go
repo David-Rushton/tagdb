@@ -12,10 +12,28 @@ func main() {
 	fmt.Println("----------------")
 	fmt.Println()
 
-	cli.NewCommand("good", "a command that should exit 0", goodHandler)
-	cli.NewCommand("bad", "a command that should exit 1", badHandler)
+	builder := cli.Builder{}
+	builder.Name("tagdb-cli")
+	builder.Version("0.1.0-test")
+	builder.Description("A CLI for TagDB")
 
-	cli.Run(os.Args)
+	branch, err := builder.AddBranch("wip", "testing api structure")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = branch.AddCommand("good", "a good command", goodHandler)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = branch.AddCommand("bad", "a bad command", badHandler)
+	if err != nil {
+		panic(err)
+	}
+
+	app := builder.Build()
+	app.Run(os.Args)
 }
 
 func goodHandler() int {
