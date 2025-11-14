@@ -39,9 +39,15 @@ A persist key-value store with searchable tags.
 
 ## CLI
 
-- ⌛ Command parsing
-- ⌛ Routes
+- ✅ Command parsing
+- ✅ Routes
 - ⌛ Arguments
 - ⌛ Options
-- ⌛ Components
-- ⌛ Support all endpoints
+- 🆕 Array arguments
+- 🆕 Array options
+- 🆕 Better Arg/Option errors
+- 🆕 Arg/option validation
+- 🆕 POSIX IEEE Std 1003.2-1992
+- 🆕 Don't error - panic
+- 🆕 Components
+- 🆕 Support all endpoints

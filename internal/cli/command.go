@@ -27,7 +27,7 @@ func (c *command) AddCommand(name, description string, handler commandHandler) (
 // Example:
 //
 //	| binary | branch | command |
-//	| ------ |--------| ------- |
+//	| ------ | ------ | ------- |
 //	| my_app | pod    | start   |
 //	| my_app | pod    | stop    |
 func (c *command) AddBranch(name, description string) (*command, error) {
@@ -49,4 +49,31 @@ func newBranchCommandHandler(name, description string) func() int {
 
 		return 0
 	}
+}
+
+func addSubcommand(parent *command, name, description string, handler commandHandler) (*command, error) {
+	// Validation.
+	if err := validateCommandName(name); err != nil {
+		return nil, err
+	}
+
+	if err := validateDescription(description); err != nil {
+		return nil, err
+	}
+
+	// Create command.
+	cmd := &command{
+		name:        name,
+		description: description,
+		handler:     handler,
+		subcommands: map[string]*command{},
+	}
+
+	// Register command.
+	if _, found := parent.subcommands[cmd.name]; found {
+		return nil, &DuplicateCommandError{CommandName: cmd.name}
+	}
+	parent.subcommands[cmd.name] = cmd
+
+	return cmd, nil
 }

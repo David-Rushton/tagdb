@@ -68,33 +68,6 @@ func (b *Builder) AddCommand(name, description string, handler commandHandler) (
 	return addSubcommand(b.rootCommand, name, description, handler)
 }
 
-func addSubcommand(parent *command, name, description string, handler commandHandler) (*command, error) {
-	// Validation.
-	if err := validateCommandName(name); err != nil {
-		return nil, err
-	}
-
-	if err := validateDescription(description); err != nil {
-		return nil, err
-	}
-
-	// Create command.
-	cmd := &command{
-		name:        name,
-		description: description,
-		handler:     handler,
-		subcommands: map[string]*command{},
-	}
-
-	// Register command.
-	if _, found := parent.subcommands[cmd.name]; found {
-		return nil, &DuplicateCommandError{CommandName: cmd.name}
-	}
-	parent.subcommands[cmd.name] = cmd
-
-	return cmd, nil
-}
-
 func (b *Builder) Build() *app {
 	if b.rootCommand == nil {
 		b.rootCommand = &command{
