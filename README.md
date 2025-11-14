@@ -41,8 +41,10 @@ A persist key-value store with searchable tags.
 
 - ✅ Command parsing
 - ✅ Routes
-- ⌛ Arguments
-- ⌛ Options
+- ⌛ Arguments - variadic for last only
+- ⌛ Options - both -t a -t b and -t a b 
+- ⌛ Add -- to switch to posistional mode only
+- 🆕 Multi flag support -a -b -c == -abc
 - 🆕 Array arguments
 - 🆕 Array options
 - 🆕 Better Arg/Option errors
