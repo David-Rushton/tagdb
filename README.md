@@ -44,6 +44,8 @@ A persist key-value store with searchable tags.
 - ⌛ Arguments - variadic for last only
 - ⌛ Options - both -t a -t b and -t a b 
 - ⌛ Add -- to switch to posistional mode only
+- 🆕 Move to interface
+- 🆕 context.Context support
 - 🆕 Multi flag support -a -b -c == -abc
 - 🆕 Array arguments
 - 🆕 Array options
