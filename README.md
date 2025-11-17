@@ -41,11 +41,15 @@ A persist key-value store with searchable tags.
 
 - ✅ Command parsing
 - ✅ Routes
-- ⌛ Arguments
-- ⌛ Options
-- 🆕 Array arguments?
-- 🆕 Array options?
+- ⌛ Arguments - variadic for last only
+- ⌛ Options - both -t a -t b and -t a b 
+- ⌛ Add -- to switch to posistional mode only
+- 🆕 Move to interface
+- 🆕 context.Context support
+- 🆕 Multi flag support -a -b -c == -abc
 - 🆕 Fail on additional args
+- 🆕 Array arguments
+- 🆕 Array options
 - 🆕 Better Arg/Option errors
 - 🆕 Arg/option validation
 - 🆕 POSIX IEEE Std 1003.2-1992
