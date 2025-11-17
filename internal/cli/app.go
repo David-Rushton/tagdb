@@ -1,6 +1,8 @@
 package cli
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type app struct {
 	name        string
@@ -26,7 +28,7 @@ func (a *app) Run(args []string) {
 	argsQueue := newQueue(args[1:])
 
 	for !argsQueue.isEmpty() {
-		arg := argsQueue.peek().(string)
+		arg := argsQueue.peek()
 
 		if command, found := currentCommand.subcommands[arg]; found {
 			currentCommand = command
@@ -45,8 +47,16 @@ func (a *app) Run(args []string) {
 		return
 	}
 
+	// Parse args.
+	commandArgs := argsQueue.toSlice()
+	err := unmarshalArgs(commandArgs, candidateCommand)
+	if err != nil {
+		fmt.Printf("cannot read args because %s\n", err)
+	}
+
 	// Execute command.
 	fmt.Printf("executing `%s` with args `%s`\n", candidateCommand.name, argsQueue)
 	fmt.Printf("`%s`\n\n", candidateCommand.description)
-	a.exit(candidateCommand.handler())
+	result := candidateCommand.handler.Invoke()
+	a.exit(result)
 }

@@ -10,16 +10,12 @@ func Test_app_Run_InvokesExpectedCommand(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = branch.AddCommand("foo", "foo command", func() int {
-		return 42
-	})
+	_, err = branch.AddCommand("foo", "foo command", &invokeExit42{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = branch.AddCommand("bar", "bar command", func() int {
-		return -1
-	})
+	_, err = branch.AddCommand("bar", "bar command", &invokeExitMinus1{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -44,16 +40,12 @@ func Test_app_Run_Exits1_WhenCommandNotFound(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = branch.AddCommand("foo", "foo command", func() int {
-		return 42
-	})
+	_, err = branch.AddCommand("foo", "foo command", &invokeExit42{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = branch.AddCommand("bar", "bar command", func() int {
-		return -1
-	})
+	_, err = branch.AddCommand("bar", "bar command", &invokeExitMinus1{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -90,4 +82,16 @@ func Test_app_Run_Exits1_WhenInvalidNumberOfArgsProvided(t *testing.T) {
 	if actual != -1 {
 		t.Fatalf("expected exit code -1, got %d", actual)
 	}
+}
+
+type invokeExit42 struct{}
+
+func (ie *invokeExit42) Invoke() int {
+	return 42
+}
+
+type invokeExitMinus1 struct{}
+
+func (ie *invokeExitMinus1) Invoke() int {
+	return -1
 }

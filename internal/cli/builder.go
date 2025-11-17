@@ -51,12 +51,12 @@ func (b *Builder) AddBranch(name, description string) (*command, error) {
 		}
 	}
 
-	handler := newBranchCommandHandler(name, description)
-	return addSubcommand(b.rootCommand, name, description, handler)
+	invoke := newBranchCommandHandler(name, description)
+	return addSubcommand(b.rootCommand, name, description, invoke)
 }
 
 // Adds a command.
-func (b *Builder) AddCommand(name, description string, handler commandHandler) (*command, error) {
+func (b *Builder) AddCommand(name, description string, handler Invoker) (*command, error) {
 	if b.rootCommand == nil {
 		b.rootCommand = &command{
 			name:        "",

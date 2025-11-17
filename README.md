@@ -43,11 +43,26 @@ A persist key-value store with searchable tags.
 - ✅ Routes
 - ⌛ Arguments
 - ⌛ Options
-- 🆕 Array arguments
-- 🆕 Array options
+- 🆕 Array arguments?
+- 🆕 Array options?
+- 🆕 Fail on additional args
 - 🆕 Better Arg/Option errors
 - 🆕 Arg/option validation
 - 🆕 POSIX IEEE Std 1003.2-1992
 - 🆕 Don't error - panic
 - 🆕 Components
 - 🆕 Support all endpoints
+
+
+```
+# failing test case
+# When --age omitted returns `[David 46]` 😕
+󰁕 go run .\cmd\tagdb_cli\ wip good David --age 46
+cli parsing test
+----------------
+
+executing `good` with args `[David 0]`
+`a good command`
+
+good: &{Name: Age:0}
+```

@@ -22,12 +22,12 @@ func main() {
 		panic(err)
 	}
 
-	_, err = branch.AddCommand("good", "a good command", goodHandler)
+	_, err = branch.AddCommand("good", "a good command", &goodInvoker{})
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = branch.AddCommand("bad", "a bad command", badHandler)
+	_, err = branch.AddCommand("bad", "a bad command", &badInvoker{})
 	if err != nil {
 		panic(err)
 	}
@@ -43,5 +43,25 @@ func goodHandler() int {
 
 func badHandler() int {
 	fmt.Println("bad command called")
+	return 1
+}
+
+type goodInvoker struct {
+	Name string `arg:"0:<name>" help:"Name of the good invoker."`
+	Age  int    `option:"--age" help:"Age of the good invoker."`
+}
+
+func (gi *goodInvoker) Invoke() int {
+	fmt.Printf("good: %+v\n", gi)
+	return 0
+}
+
+type badInvoker struct {
+	Name string `arg:"0:<name>" help:"Name of the good invoker."`
+	Age  int    `option:"--age" help:"Age of the good invoker."`
+}
+
+func (bi *badInvoker) Invoke() int {
+	fmt.Printf("bad: %+v\n", bi)
 	return 1
 }

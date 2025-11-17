@@ -8,13 +8,9 @@ import (
 	"strings"
 )
 
-type args struct {
-	args []string
-}
-
-func (p *args) Unmarshal(v any) error {
+func unmarshalArgs(args []string, target any) error {
 	// Validate input.
-	ptrValue := reflect.ValueOf(v)
+	ptrValue := reflect.ValueOf(target)
 	if ptrValue.Kind() != reflect.Ptr || ptrValue.IsNil() {
 		return fmt.Errorf("unmarshal target must be a non-nil pointer")
 	}
@@ -126,31 +122,31 @@ func (p *args) Unmarshal(v any) error {
 	// Map options to fields.
 	consumedArgs := map[int]bool{}
 
-	for i := range p.args {
+	for i := range args {
 		if consumedArgs[i] {
 			continue
 		}
 
-		if optionField, found := optionFields[p.args[i]]; found {
+		if optionField, found := optionFields[args[i]]; found {
 			consumedArgs[i] = true
 
 			// Set boolean flags to true.
 			if optionField.field.Kind() == reflect.Bool {
 				err := setFieldValue(optionField.field, "true")
 				if err != nil {
-					return fmt.Errorf("invalid value for option %s: %w", p.args[i], err)
+					return fmt.Errorf("invalid value for option %s: %w", args[i], err)
 				}
 				continue
 			}
 
 			// Get the value.
-			if i+1 >= len(p.args) {
-				return fmt.Errorf("missing value for option %s", p.args[i])
+			if i+1 >= len(args) {
+				return fmt.Errorf("missing value for option %s", args[i])
 			}
 
-			err := setFieldValue(optionField.field, p.args[i+1])
+			err := setFieldValue(optionField.field, args[i+1])
 			if err != nil {
-				return fmt.Errorf("invalid value for option %s: %w", p.args[i], err)
+				return fmt.Errorf("invalid value for option %s: %w", args[i], err)
 			}
 
 			consumedArgs[i+1] = true
@@ -165,7 +161,7 @@ func (p *args) Unmarshal(v any) error {
 		}
 
 		if argField, found := argFields[argIndex]; found {
-			err := setFieldValue(argField.field, p.args[i])
+			err := setFieldValue(argField.field, args[i])
 			if err != nil {
 				return fmt.Errorf("invalid value for arg %s: %w", argField.arg.name, err)
 			}

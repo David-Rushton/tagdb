@@ -81,8 +81,8 @@ func Test_Builder_AddsBranches(t *testing.T) {
 
 func Test_Builder_AddsCommands(t *testing.T) {
 	builder := &Builder{}
-	builder.AddCommand("get", "get things", func() int { return 0 })
-	builder.AddCommand("list", "list things", func() int { return 0 })
+	builder.AddCommand("get", "get things", &invokeExit0{})
+	builder.AddCommand("list", "list things", &invokeExit0{})
 
 	app := builder.Build()
 
@@ -102,12 +102,12 @@ func Test_Builder_AddsCommands(t *testing.T) {
 func Test_Build_ReturnsDuplicateCommandError_WhenAddingDuplicateCommand(t *testing.T) {
 	builder := &Builder{}
 
-	_, err1 := builder.AddCommand("get", "get things", func() int { return 0 })
+	_, err1 := builder.AddCommand("get", "get things", &invokeExit0{})
 	if err1 != nil {
 		t.Errorf("unexpected error when adding first command: %s", err1)
 	}
 
-	_, err2 := builder.AddCommand("get", "get things again", func() int { return 0 })
+	_, err2 := builder.AddCommand("get", "get things again", &invokeExit0{})
 	if err2 == nil {
 		t.Errorf("expected error when adding duplicate command, got nil")
 	}
@@ -116,4 +116,10 @@ func Test_Build_ReturnsDuplicateCommandError_WhenAddingDuplicateCommand(t *testi
 	if !errors.As(err2, &dupErr) {
 		t.Errorf("expected DuplicateCommandError when adding duplicate command, got %T", err2)
 	}
+}
+
+type invokeExit0 command
+
+func (ie *invokeExit0) Invoke() int {
+	return 0
 }

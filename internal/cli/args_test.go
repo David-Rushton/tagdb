@@ -12,9 +12,13 @@ type starship struct {
 	Decommissioned bool    `option:"--decommissioned" help:"True when the starship has been commissioned."`
 }
 
+func (uss *starship) Invoke() int {
+	return 0
+}
+
 func Test_Unmarshal_ReturnsExpectedResult(t *testing.T) {
 	// Arrange
-	args := args{[]string{
+	args := []string{
 		"Enterprise",
 		"NCC-1701-D",
 		"--class", "Galaxy",
@@ -22,7 +26,7 @@ func Test_Unmarshal_ReturnsExpectedResult(t *testing.T) {
 		"--max-speed", "9.65",
 		"--commission-year", "2363",
 		"--decommissioned",
-	}}
+	}
 	actual := &starship{}
 	expected := &starship{
 		Name:           "Enterprise",
@@ -35,7 +39,7 @@ func Test_Unmarshal_ReturnsExpectedResult(t *testing.T) {
 	}
 
 	// Act
-	err := args.Unmarshal(actual)
+	err := unmarshalArgs(args, actual)
 
 	// Assert
 	if err != nil {
