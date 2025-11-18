@@ -1,6 +1,9 @@
 package cli
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 type starship struct {
 	Name           string  `arg:"0:<name>" help:"Name of the starship."`
@@ -16,7 +19,7 @@ func (uss *starship) Invoke() int {
 	return 0
 }
 
-func Test_Unmarshal_ReturnsExpectedResult(t *testing.T) {
+func Test_unmarshalArgs_ReturnsExpectedResult(t *testing.T) {
 	// Arrange
 	args := []string{
 		"Enterprise",
@@ -43,10 +46,126 @@ func Test_Unmarshal_ReturnsExpectedResult(t *testing.T) {
 
 	// Assert
 	if err != nil {
-		t.Errorf("Unmarshal() returned an error: %v", err)
+		t.Errorf("unmarshalArgs() returned an error: %v", err)
 	}
 
 	if *expected != *actual {
-		t.Errorf("Unmarshal() failed \n\tExpected = %+v\n\tActual = %+v", *expected, *actual)
+		t.Errorf("unmarshalArgs() failed \n\tExpected = %+v\n\tActual = %+v", *expected, *actual)
+	}
+}
+
+func Test_unmarshalArgs_ReturnsExpectedResult_WhenArgsUnordered(t *testing.T) {
+	// Arrange
+	args := []string{
+		"--class", "Galaxy",
+		"-c", "Jean-Luc Picard",
+		"Enterprise",
+		"NCC-1701-D",
+		"--decommissioned",
+		"--commission-year", "2363",
+		"--max-speed", "9.65",
+	}
+	actual := &starship{}
+	expected := &starship{
+		Name: "Enterprise",
+
+		Registry:       "NCC-1701-D",
+		Class:          "Galaxy",
+		Captain:        "Jean-Luc Picard",
+		MaximumSpeed:   9.65,
+		CommissionYear: 2363,
+		Decommissioned: true,
+	}
+
+	// Act
+	err := unmarshalArgs(args, actual)
+
+	// Assert
+	if err != nil {
+		t.Errorf("unmarshalArgs() returned an error: %v", err)
+	}
+
+	if *expected != *actual {
+		t.Errorf("unmarshalArgs() failed \n\tExpected = %+v\n\tActual = %+v", *expected, *actual)
+	}
+}
+
+func Test_unmarshalArgs_ReturnsDefaultValuesForMissingOptions(t *testing.T) {
+	// Arrange
+	args := []string{
+		"Enterprise",
+		"NCC-1701-D",
+	}
+	actual := &starship{}
+	expected := &starship{
+		Name: "Enterprise",
+
+		Registry:       "NCC-1701-D",
+		Class:          "",
+		Captain:        "",
+		MaximumSpeed:   0.0,
+		CommissionYear: 0,
+		Decommissioned: false,
+	}
+
+	// Act
+	err := unmarshalArgs(args, actual)
+
+	// Assert
+	if err != nil {
+		t.Errorf("unmarshalArgs() returned an error: %v", err)
+	}
+
+	if *expected != *actual {
+		t.Errorf("unmarshalArgs() failed \n\tExpected = %+v\n\tActual = %+v", *expected, *actual)
+	}
+}
+
+func Test_unmarshalArgs_ExpectsStructPointer(t *testing.T) {
+	// Arrange
+	expected := fmt.Errorf("unmarshal target must be a non-nil pointer")
+
+	// Act & Assert
+	err := unmarshalArgs([]string{}, starship{})
+	if err == nil || err.Error() != expected.Error() {
+		t.Errorf("unmarshalArgs() error \n\tExpected = %v\n\tActual = %v", expected, err)
+	}
+
+	err = unmarshalArgs([]string{}, nil)
+	if err == nil || err.Error() != expected.Error() {
+		t.Errorf("unmarshalArgs() error \n\tExpected = %v\n\tActual = %v", expected, err)
+	}
+
+	var someBool bool
+	err = unmarshalArgs([]string{}, someBool)
+	if err == nil || err.Error() != expected.Error() {
+		t.Errorf("unmarshalArgs() error \n\tExpected = %v\n\tActual = %v", expected, err)
+	}
+
+	var someInt bool
+	expectedErr := fmt.Errorf("unmarshal target must be struct")
+	err = unmarshalArgs([]string{}, &someInt)
+	if err == nil || err.Error() != expectedErr.Error() {
+		t.Errorf("unmarshalArgs() error \n\tExpected = %v\n\tActual = %v", expected, err)
+	}
+}
+
+func Test_unmarshalArgs_ReturnsErr_WhenAdditionalArgsFound(t *testing.T) {
+	// Arrange
+	args := []string{
+		"Enterprise",
+		"NCC-1701-D",
+		"--captain", "Jean-Luc Picard",
+		"--is-force-user",
+		"some-value",
+	}
+	expected := fmt.Errorf("unexpected args: --is-force-user some-value")
+
+	// Act
+	err := unmarshalArgs(args, &starship{})
+
+	// Assert
+	if err == nil || err.Error() != expected.Error() {
+		t.Errorf("unmarshalArgs() error \n\tExpected = %v\n\tActual = %v", expected, err)
 	}
 }

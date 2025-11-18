@@ -114,11 +114,6 @@ func unmarshalArgs(args []string, target any) error {
 		}
 	}
 
-	// dotnet new --verbose console
-	// dotnet new console --verbose
-	// dotnet new console --output ./a
-	// dotnet new --output ./a console
-
 	// Map options to fields.
 	consumedArgs := map[int]bool{}
 
@@ -155,7 +150,7 @@ func unmarshalArgs(args []string, target any) error {
 
 	// Map args to fields.
 	var argIndex int
-	for i := range len(argFields) {
+	for i := range len(args) {
 		if consumedArgs[i] {
 			continue
 		}
@@ -165,10 +160,11 @@ func unmarshalArgs(args []string, target any) error {
 			if err != nil {
 				return fmt.Errorf("invalid value for arg %s: %w", argField.arg.name, err)
 			}
+
+			consumedArgs[i] = true
 		}
 
 		argIndex++
-		consumedArgs[i] = true
 	}
 
 	// Validate required args.
@@ -178,6 +174,19 @@ func unmarshalArgs(args []string, target any) error {
 				return fmt.Errorf("missing required arg %s", argField.arg.name)
 			}
 		}
+	}
+
+	if len(consumedArgs) != len(args) {
+		sb := strings.Builder{}
+		for i, arg := range args {
+			if consumedArgs[i] {
+				continue
+			}
+
+			sb.WriteString(" ")
+			sb.WriteString(arg)
+		}
+		return fmt.Errorf("unexpected args:%s", sb.String())
 	}
 
 	return nil
