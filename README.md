@@ -42,7 +42,7 @@ A persist key-value store with searchable tags.
 - ✅ Command parsing
 - ✅ Routes
 - ✅ Fail on additional args
-- ⌛ Arguments - variadic for last only
+- ✅ Arguments - variadic for last only
 - ⌛ Options - both -t a -t b and -t a b 
 - ⌛ Add -- to switch to positional mode only
 - 🆕 Move to interface

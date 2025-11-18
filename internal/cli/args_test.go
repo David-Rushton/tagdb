@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 )
 
@@ -167,5 +168,30 @@ func Test_unmarshalArgs_ReturnsErr_WhenAdditionalArgsFound(t *testing.T) {
 	// Assert
 	if err == nil || err.Error() != expected.Error() {
 		t.Errorf("unmarshalArgs() error \n\tExpected = %v\n\tActual = %v", expected, err)
+	}
+}
+
+func Test_unmarshalArgs_SupportsVariadicFinalArg(t *testing.T) {
+	// Arrange
+	type params struct {
+		Product string `arg:"0:<name>" help:"some name"`
+		Sizes   []int  `arg:"1:<sizes>" help:"some name"`
+	}
+	actual := &params{}
+	expected := &params{
+		Product: "shoe",
+		Sizes:   []int{10, 12, 13},
+	}
+
+	// Act
+	err := unmarshalArgs([]string{"shoe", "10", "12", "13"}, actual)
+
+	// Assert
+	if err != nil {
+		t.Errorf("unmarshalArgs() returned an error: %v", err)
+	}
+
+	if expected.Product != actual.Product || !slices.Equal(expected.Sizes, actual.Sizes) {
+		t.Errorf("unmarshalArgs() failed \n\tExpected = %+v\n\tActual = %+v", *expected, *actual)
 	}
 }

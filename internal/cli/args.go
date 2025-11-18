@@ -98,6 +98,7 @@ func unmarshalArgs(args []string, target any) error {
 	// Argument fields must:
 	//  - be continuous from index 0 to N
 	//  - all required args must come before optional args
+	//  - only final can be variadic
 	var optionalArgFound bool
 	for i := range len(argFields) {
 		if _, exists := argFields[i]; !exists {
@@ -111,6 +112,10 @@ func unmarshalArgs(args []string, target any) error {
 
 		if optionalArgFound && argFields[i].arg.required {
 			return fmt.Errorf("required arg found after optional arg at index %d", i)
+		}
+
+		if isArrayOrSlice(argFields[i].field) && i != len(argFields)-1 {
+			return fmt.Errorf("variadic args must be the final arg")
 		}
 	}
 
@@ -156,12 +161,32 @@ func unmarshalArgs(args []string, target any) error {
 		}
 
 		if argField, found := argFields[argIndex]; found {
-			err := setFieldValue(argField.field, args[i])
+			var exitEarly bool
+			value := args[i]
+
+			if isArrayOrSlice(argField.field) {
+				// Variadic argument consumes all remaining, unless we reach an arg that
+				// has already been consumed (e.g. a recognised option handled above).
+				for j := i + 1; j < len(args); j++ {
+					if consumedArgs[j] {
+						break
+					}
+					value += "," + args[j]
+					consumedArgs[j] = true
+				}
+				exitEarly = true
+			}
+
+			err := setFieldValue(argField.field, value)
 			if err != nil {
 				return fmt.Errorf("invalid value for arg %s: %w", argField.arg.name, err)
 			}
 
 			consumedArgs[i] = true
+
+			if exitEarly {
+				break
+			}
 		}
 
 		argIndex++
@@ -325,12 +350,21 @@ func isSupportedKind(field reflect.Value) bool {
 		return true
 
 	case reflect.Array, reflect.Slice:
-		elementType := field.Elem()
+		elementType := reflect.New(field.Type().Elem()).Elem()
 		return isSupportedKind(elementType)
 
 	case reflect.String:
 		return true
 
+	default:
+		return false
+	}
+}
+
+func isArrayOrSlice(field reflect.Value) bool {
+	switch field.Kind() {
+	case reflect.Array, reflect.Slice:
+		return true
 	default:
 		return false
 	}
