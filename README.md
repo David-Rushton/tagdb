@@ -43,8 +43,9 @@ A persist key-value store with searchable tags.
 - ✅ Routes
 - ✅ Fail on additional args
 - ✅ Arguments - variadic for last only
+- ✅ Support slice/array options.
+- ✅ Add -- to switch to positional mode only
 - ⌛ Options - both -t a -t b and -t a b 
-- ⌛ Add -- to switch to positional mode only
 - 🆕 Move to interface
 - 🆕 context.Context support
 - 🆕 Multi flag support -a -b -c == -abc

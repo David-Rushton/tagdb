@@ -122,15 +122,19 @@ func unmarshalArgs(args []string, target any) error {
 	// Map options to fields.
 	consumedArgs := map[int]bool{}
 
-	for i := range args {
-		if consumedArgs[i] {
-			continue
-		}
+	optionBuf := map[string][]string{}
 
+outerLoop:
+	for i := 0; i < len(args); i++ {
 		if optionField, found := optionFields[args[i]]; found {
 			consumedArgs[i] = true
+			key := optionField.option.Key()
 
-			// Set boolean flags to true.
+			if _, found := optionBuf[key]; !found {
+				optionBuf[key] = []string{}
+			}
+
+			// Bool flags do not consume the next arg.
 			if optionField.field.Kind() == reflect.Bool {
 				err := setFieldValue(optionField.field, "true")
 				if err != nil {
@@ -139,17 +143,42 @@ func unmarshalArgs(args []string, target any) error {
 				continue
 			}
 
-			// Get the value.
+			// Value flags require at least the next arg.
 			if i+1 >= len(args) {
 				return fmt.Errorf("missing value for option %s", args[i])
 			}
 
-			err := setFieldValue(optionField.field, args[i+1])
-			if err != nil {
-				return fmt.Errorf("invalid value for option %s: %w", args[i], err)
+			// Slice and array options can consume multiple values.
+			stopAt := i + 2
+			if isArrayOrSlice(optionField.field) {
+				stopAt = len(args)
 			}
 
-			consumedArgs[i+1] = true
+			for j := i + 1; j < stopAt; j++ {
+				if _, found := optionFields[args[j]]; found {
+					// Next arg is another option, stop consuming.
+					break
+				}
+
+				if args[j] == "--" {
+					// Next arg is the positional mode switch, stop consuming.
+					break outerLoop
+				}
+
+				optionBuf[key] = append(optionBuf[key], args[j])
+				consumedArgs[j] = true
+				i = j
+			}
+		}
+	}
+
+	// Apply option values.
+	for k, v := range optionBuf {
+		optionField := optionFields[k]
+		value := strings.Join(v, ",")
+		err := setFieldValue(optionField.field, value)
+		if err != nil {
+			return fmt.Errorf("invalid value for option %s: %w", k, err)
 		}
 	}
 
@@ -275,6 +304,13 @@ type option struct {
 	short string
 	long  string
 	help  string
+}
+
+func (o *option) Key() string {
+	if o.long != "" {
+		return o.long
+	}
+	return o.short
 }
 
 type optionField struct {

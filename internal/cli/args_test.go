@@ -175,16 +175,49 @@ func Test_unmarshalArgs_SupportsVariadicFinalArg(t *testing.T) {
 	// Arrange
 	type params struct {
 		Product string `arg:"0:<name>" help:"some name"`
-		Sizes   []int  `arg:"1:<sizes>" help:"some name"`
+		Sizes   []int  `arg:"1:<sizes>" help:"some sizes"`
 	}
 	actual := &params{}
 	expected := &params{
 		Product: "shoe",
-		Sizes:   []int{10, 12, 13},
+		Sizes:   []int{11, 12, 13},
 	}
 
 	// Act
-	err := unmarshalArgs([]string{"shoe", "10", "12", "13"}, actual)
+	err := unmarshalArgs([]string{"shoe", "11", "12", "13"}, actual)
+
+	// Assert
+	if err != nil {
+		t.Errorf("unmarshalArgs() returned an error: %v", err)
+	}
+
+	if expected.Product != actual.Product || !slices.Equal(expected.Sizes, actual.Sizes) {
+		t.Errorf("unmarshalArgs() failed \n\tExpected = %+v\n\tActual = %+v", *expected, *actual)
+	}
+}
+
+func Test_unmarshalArgs_SupportsSliceOptions(t *testing.T) {
+	// Arrange
+	type params struct {
+		Product string   `arg:"0:<name>" help:"some name"`
+		Sizes   []int    `option:"-s|--size" help:"some sizes"`
+		Brands  []string `option:"-b|--brand" help:"some brands"`
+	}
+	actual := &params{}
+	expected := &params{
+		Product: "shoe",
+		Sizes:   []int{10, 11, 12, 13},
+		Brands:  []string{"nike", "hi-tech"},
+	}
+	args := []string{
+		"shoe",
+		"-s", "10", "11", "12",
+		"-b", "nike", "hi-tech",
+		"-s", "13",
+	}
+
+	// Act
+	err := unmarshalArgs(args, actual)
 
 	// Assert
 	if err != nil {
