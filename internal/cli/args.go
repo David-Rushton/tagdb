@@ -155,15 +155,15 @@ func unmarshalArgs(args []string, target any) error {
 
 	// Map args to fields.
 	var argIndex int
-	for i := range len(args) {
+	for i := 0; i < len(args); i++ {
 		if consumedArgs[i] {
 			continue
 		}
 
 		if argField, found := argFields[argIndex]; found {
-			var exitEarly bool
-			value := args[i]
+			consumedArgs[i] = true
 
+			value := args[i]
 			if isArrayOrSlice(argField.field) {
 				// Variadic argument consumes all remaining, unless we reach an arg that
 				// has already been consumed (e.g. a recognised option handled above).
@@ -174,18 +174,13 @@ func unmarshalArgs(args []string, target any) error {
 					value += "," + args[j]
 					consumedArgs[j] = true
 				}
-				exitEarly = true
+				// End processing.
+				i = len(args)
 			}
 
 			err := setFieldValue(argField.field, value)
 			if err != nil {
 				return fmt.Errorf("invalid value for arg %s: %w", argField.arg.name, err)
-			}
-
-			consumedArgs[i] = true
-
-			if exitEarly {
-				break
 			}
 		}
 
