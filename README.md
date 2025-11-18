@@ -45,12 +45,10 @@ A persist key-value store with searchable tags.
 - ✅ Arguments - variadic for last only
 - ✅ Support slice/array options.
 - ✅ Add -- to switch to positional mode only
-- ⌛ Options - both -t a -t b and -t a b 
-- 🆕 Move to interface
+- ✅ Options - both -t a -t b and -t a b 
+- ✅ Move to interface
 - 🆕 context.Context support
 - 🆕 Multi flag support -a -b -c == -abc
-- 🆕 Array arguments
-- 🆕 Array options
 - 🆕 Better Arg/Option errors
 - 🆕 Arg/option validation
 - 🆕 POSIX IEEE Std 1003.2-1992
